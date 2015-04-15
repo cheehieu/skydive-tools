@@ -16,7 +16,7 @@ Skydiving technology has advanced considerably in recent years, vastly improving
 * Improve ground training through body flight simulations (non-tunnel)
 * Advanced sensors to track detailed analytics of each jump, jumper (simulator play back)
 
-## Idea Backlog
+### Idea Backlog
 * alitimeter
 * audible
 * windspeed
