@@ -4,7 +4,7 @@ title: skydive-tools
 subtitle: A collection of ideas and prototypes for improving the sport of skydiving.
 ---
 
-<img src="http://niftyhedgehog.com/skydive-tools/images/cypres2.jpg">
+<img src="http://niftyhedgehog.com/skydive-tools/images/cypres_unbox.jpg">
 
 ## Overview
 Skydiving technology has advanced considerably in recent years, vastly improving the safety of those who choose to fly. Despite these advancements, the sport of skydiving is still a dangerous one with significant risks. This repository is dedicated to utilizing engineering concepts to improve the ability, awareness, and safety of skydivers.
