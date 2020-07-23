@@ -39,4 +39,13 @@ Skydiving technology has advanced considerably in recent years, vastly improving
 * Skeletal positional tracking, computer vision
 * Time trials
 * Racing
-* 
+
+## Altimeter
+- BMD390L pressure sensor
+- modular design (power, display, connectivity), magnetic connectors
+- datastream to phone over BLE
+- BLE audio for audible, connect to AirPods, etc.
+- onboard buzzer for audible
+- redundant sensors for median voting
+- https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp390l/
+- https://www.mide.com/air-pressure-at-altitude-calculator
