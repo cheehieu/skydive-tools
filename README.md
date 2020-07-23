@@ -47,5 +47,6 @@ Skydiving technology has advanced considerably in recent years, vastly improving
 - BLE audio for audible, connect to AirPods, etc.
 - onboard buzzer for audible
 - redundant sensors for median voting
+- log timestamps to sync with video feed
 - https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp390l/
 - https://www.mide.com/air-pressure-at-altitude-calculator
