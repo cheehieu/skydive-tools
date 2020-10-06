@@ -1,7 +1,6 @@
 # Audible Altimeter Research
 
-
-## Top Options (Oct. 2020)
+## Product Options (Oct. 2020)
 - L&B Optima II ($299)
 - L&B Solo II ($246)
 - L&B Quattro ($299)
@@ -129,6 +128,11 @@ _FlySight GPS_:
 ## Reviews
 - I can't really fault the Quattro for the price: if I wanted logging I would spring for the ProTrack. If I wanted swooping instead I'd go for the Optima II. If I wanted a spoken voice audible and money was no object I'd get the VOG. If I wanted cheap and simple there's the Brilliant Pebbles, no reason to get the Solo II anymore.
 - 
+
+
+## Selection?
+- L&B Quattro
+- AON2 Brilliant Pebbles
 
 
 ## Resources
