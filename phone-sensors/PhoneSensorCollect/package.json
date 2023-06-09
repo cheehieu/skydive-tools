@@ -24,6 +24,7 @@
     "deep-reset": "yarn deep-clean && yarn install"
   },
   "dependencies": {
+    "@react-native-community/geolocation": "^3.0.6",
     "react": "18.2.0",
     "react-native": "0.71.10",
     "react-native-sensors": "^7.3.6"

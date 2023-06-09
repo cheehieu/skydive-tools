@@ -30,6 +30,7 @@ import {
 } from 'react-native/Libraries/NewAppScreen';
 
 import { barometer, magnetometer, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
+import Geolocation from '@react-native-community/geolocation';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -82,6 +83,8 @@ function App(): JSX.Element {
   const [timestamp, setTimestamp] = useState(0);
   const [magneto, setMagneto] = useState({ x: 0, y: 0, z: 0 });
   const [pressure, setPressure] = useState(0);
+  const [location, setLocation] = useState({ lat: 0, long: 0, acc: 0, head: 0, speed: 0, alt: 0, vacc: 0 });
+
   const pressureHouston = 1010.53;
 
   useEffect(() => {
@@ -94,7 +97,19 @@ function App(): JSX.Element {
     const subMagnetometer = magnetometer.subscribe(({ x, y, z, timestamp }) => {
       setMagneto({ x, y, z });
       setTimestamp(timestamp);
-  });
+    });
+    Geolocation.getCurrentPosition(info => {
+      console.log(info)
+      setLocation({ 
+        lat: info.coords.latitude,
+        long: info.coords.longitude,
+        acc: info.coords.accuracy,
+        head: info.coords.heading ? info.coords.heading : -1,
+        speed: info.coords.speed ? info.coords.speed : -1,
+        alt: info.coords.altitude ? info.coords.altitude : -1,
+        vacc: info.coords.altitudeAccuracy ? info.coords.altitudeAccuracy : info.extras.verticalAccuracy ? info.extras.verticalAccuracy : -1,
+      });
+    }, error => {console.log(error)}, { enableHighAccuracy: true });
 
     return () => {
       subBarometer.unsubscribe();
@@ -134,6 +149,17 @@ function App(): JSX.Element {
               <Text>X: {magneto.x}</Text>
               <Text>Y: {magneto.y}</Text>
               <Text>Z: {magneto.z}</Text>
+            </View>
+          </Section>
+          <Section title="Geolocation:">
+            <View>
+              <Text>latitude: {location.lat}</Text>
+              <Text>longitude: {location.long}</Text>
+              <Text>accuracy: {location.acc}</Text>
+              <Text>heading: {location.head}</Text>
+              <Text>speed: {location.speed}</Text>
+              <Text>altitude: {location.alt}</Text>
+              <Text>altitudeAccuracy: {location.vacc}</Text>
             </View>
           </Section>
         </View>
