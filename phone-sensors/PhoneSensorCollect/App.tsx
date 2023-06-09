@@ -10,6 +10,8 @@
 // TODO: use GPS locaiton to determine barometric pressure at location on the ground (https://www.weather.gov/documentation/services-web-api)
 // TODO: allow user to calibrate ground altitude/pressure
 // TODO: apply Kalman filtering to combine and refind data from multiple sources
+// TODO: watch GPS location and point back to DZ pin
+
 // Measuring precise altitude using only phone sensors can be challenging due to various limitations and factors that can affect accuracy. Environmental factors, weather changes, and sensor limitations can still impact accuracy. Keep in mind that precise altitude estimation using phone sensors alone may not achieve the same level of accuracy as specialized altimeters or surveying instruments.
 
 import React, {useEffect, useState} from 'react';
@@ -104,10 +106,10 @@ function App(): JSX.Element {
         lat: info.coords.latitude,
         long: info.coords.longitude,
         acc: info.coords.accuracy,
-        head: info.coords.heading ? info.coords.heading : -1,
-        speed: info.coords.speed ? info.coords.speed : -1,
-        alt: info.coords.altitude ? info.coords.altitude : -1,
-        vacc: info.coords.altitudeAccuracy ? info.coords.altitudeAccuracy : info.extras.verticalAccuracy ? info.extras.verticalAccuracy : -1,
+        head: info.coords.heading ?? -1,
+        speed: info.coords.speed ?? -1,
+        alt: info.coords.altitude ?? -1,
+        vacc: info.coords.altitudeAccuracy ?? info.extras.verticalAccuracy ?? -1,
       });
     }, error => {console.log(error)}, { enableHighAccuracy: true });
 
@@ -144,7 +146,7 @@ function App(): JSX.Element {
               console.log('Calibrate');
             }} />
           </Section>
-          <Section title="Magnetometer:">
+          {/* <Section title="Magnetometer:">
             <View>
               <Text>X: {magneto.x}</Text>
               <Text>Y: {magneto.y}</Text>
@@ -155,13 +157,13 @@ function App(): JSX.Element {
             <View>
               <Text>latitude: {location.lat}</Text>
               <Text>longitude: {location.long}</Text>
-              <Text>accuracy: {location.acc}</Text>
-              <Text>heading: {location.head}</Text>
-              <Text>speed: {location.speed}</Text>
-              <Text>altitude: {location.alt}</Text>
-              <Text>altitudeAccuracy: {location.vacc}</Text>
+              <Text>accuracy (m): {location.acc}</Text>
+              <Text>heading (deg): {location.head}</Text>
+              <Text>speed (m/s): {location.speed}</Text>
+              <Text>altitude (m): {location.alt}</Text>
+              <Text>altitudeAccuracy (m): {location.vacc}</Text>
             </View>
-          </Section>
+          </Section> */}
         </View>
       </ScrollView>
     </SafeAreaView>
