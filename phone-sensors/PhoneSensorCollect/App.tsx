@@ -5,7 +5,7 @@
  * @format
  */
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import type {PropsWithChildren} from 'react';
 import {
   SafeAreaView,
@@ -24,6 +24,8 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+
+import { barometer, magnetometer, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -62,6 +64,29 @@ function App(): JSX.Element {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
+  const [timestamp, setTimestamp] = useState(0);
+  const [acceleration, setAcceleration] = useState({ x: 0, y: 0, z: 0 });
+  const [magneto, setMagneto] = useState({ x: 0, y: 0, z: 0 });
+  const [pressure, setPressure] = useState(0);
+
+  useEffect(() => {
+    // setUpdateIntervalForType(SensorTypes.barometer, 10);
+    setUpdateIntervalForType(SensorTypes.magnetometer, 1000); // Update every 1000ms
+
+    const subBarometer = barometer.subscribe(({ pressure }) =>
+      setPressure(pressure)
+    );
+    const subMagnetometer = magnetometer.subscribe(({ x, y, z, timestamp }) => {
+      setMagneto({ x, y, z });
+      setTimestamp(timestamp);
+  });
+
+    return () => {
+      subBarometer.unsubscribe();
+      subMagnetometer.unsubscribe();
+    };
+  }, []);
+
   return (
     <SafeAreaView style={backgroundStyle}>
       <StatusBar
@@ -71,25 +96,25 @@ function App(): JSX.Element {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={backgroundStyle}>
-        <Header />
         <View
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
+          <Section title="Time:">
+            <Text>{new Date(timestamp).toLocaleTimeString()}</Text>
           </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
+          <Section title="Barometer:">
+            <View>
+              <Text>{pressure}</Text>
+            </View>
           </Section>
-          <Section title="Debug">
-            <DebugInstructions />
+          <Section title="Magnetometer:">
+            <View>
+              <Text>X: {magneto.x}</Text>
+              <Text>Y: {magneto.y}</Text>
+              <Text>Z: {magneto.z}</Text>
+            </View>
           </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
         </View>
       </ScrollView>
     </SafeAreaView>
