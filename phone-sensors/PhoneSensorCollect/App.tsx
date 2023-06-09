@@ -5,9 +5,17 @@
  * @format
  */
 
+// TODO: apply smoothing filter to barometer data stream
+// TODO: add GPS location lat/long (altitude)
+// TODO: use GPS locaiton to determine barometric pressure at location on the ground (https://www.weather.gov/documentation/services-web-api)
+// TODO: allow user to calibrate ground altitude/pressure
+// TODO: apply Kalman filtering to combine and refind data from multiple sources
+// Measuring precise altitude using only phone sensors can be challenging due to various limitations and factors that can affect accuracy. Environmental factors, weather changes, and sensor limitations can still impact accuracy. Keep in mind that precise altitude estimation using phone sensors alone may not achieve the same level of accuracy as specialized altimeters or surveying instruments.
+
 import React, {useEffect, useState} from 'react';
 import type {PropsWithChildren} from 'react';
 import {
+  Button,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -19,10 +27,6 @@ import {
 
 import {
   Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 
 import { barometer, magnetometer, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
@@ -57,6 +61,17 @@ function Section({children, title}: SectionProps): JSX.Element {
   );
 }
 
+// Convert sensor pressure to altitude in feet or meters
+// https://www.weather.gov/media/epz/wxcalc/pressureAltitude.pdf
+function pressureToAltitude(pressure: number, seaLevelPressure: number = 1013.25, metric: boolean = false): number {
+  const altitude = (1 - Math.pow(pressure / seaLevelPressure, 0.190284)) * 145366.45;
+  if (metric) {
+    return altitude * 0.3048;
+  }
+
+  return altitude;
+}
+
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
@@ -65,12 +80,12 @@ function App(): JSX.Element {
   };
 
   const [timestamp, setTimestamp] = useState(0);
-  const [acceleration, setAcceleration] = useState({ x: 0, y: 0, z: 0 });
   const [magneto, setMagneto] = useState({ x: 0, y: 0, z: 0 });
   const [pressure, setPressure] = useState(0);
+  const pressureHouston = 1010.53;
 
   useEffect(() => {
-    // setUpdateIntervalForType(SensorTypes.barometer, 10);
+    // setUpdateIntervalForType(SensorTypes.barometer, 100);
     setUpdateIntervalForType(SensorTypes.magnetometer, 1000); // Update every 1000ms
 
     const subBarometer = barometer.subscribe(({ pressure }) =>
@@ -105,8 +120,14 @@ function App(): JSX.Element {
           </Section>
           <Section title="Barometer:">
             <View>
-              <Text>{pressure}</Text>
+              <Text>Pressure (mb): {pressure}</Text>
+              <Text>Altitude (ft): {pressureToAltitude(pressure, pressureHouston)}</Text>
+              <Text>Altitude (m): {pressureToAltitude(pressure, pressureHouston, true)}</Text>
             </View>
+
+            <Button title="Calibrate" onPress={() => {
+              console.log('Calibrate');
+            }} />
           </Section>
           <Section title="Magnetometer:">
             <View>
