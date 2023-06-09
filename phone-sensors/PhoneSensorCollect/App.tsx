@@ -11,6 +11,11 @@
 // TODO: allow user to calibrate ground altitude/pressure
 // TODO: apply Kalman filtering to combine and refind data from multiple sources
 // TODO: watch GPS location and point back to DZ pin
+// TODO: allow user to adjust voice, language, pitch, speed, etc.
+// TODO: adjust speed based on descent rate (faster if utterance won't finish before next altitude checkpoint)
+// TODO: allow user to specify altitude checkpoints and utterances
+// TODO: set phrases for audible alerts (seatbelts, 10K, full altitude, etc.) during ascent
+// TODO: allow user to use local audio files for utterances
 
 // Measuring precise altitude using only phone sensors can be challenging due to various limitations and factors that can affect accuracy. Environmental factors, weather changes, and sensor limitations can still impact accuracy. Keep in mind that precise altitude estimation using phone sensors alone may not achieve the same level of accuracy as specialized altimeters or surveying instruments.
 
@@ -18,6 +23,7 @@ import React, {useEffect, useState} from 'react';
 import type {PropsWithChildren} from 'react';
 import {
   Button,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -33,6 +39,7 @@ import {
 
 import { barometer, magnetometer, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import Geolocation from '@react-native-community/geolocation';
+import Tts from 'react-native-tts';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -113,9 +120,55 @@ function App(): JSX.Element {
       });
     }, error => {console.log(error)}, { enableHighAccuracy: true });
 
+    Tts.addEventListener('tts-start', (event) => console.log("--- start", event));
+    Tts.addEventListener('tts-progress', (event) => console.log("--- progress", event));
+    Tts.addEventListener('tts-finish', (event) => console.log("--- finish", event));
+    Tts.addEventListener('tts-cancel', (event) => console.log("--- cancel", event));
+
+    Tts.getInitStatus().then(() => {
+      Tts.setDucking(true);
+      Tts.voices().then(voices => console.log('Voices:', voices));
+      // Tts.setDefaultLanguage('en-IE');
+      // Tts.setDefaultVoice('com.apple.ttsbundle.siri_male_en-GB_compact');
+      // Tts.setDefaultRate(0.5);
+      // Tts.setDefaultPitch(1.0);
+      Tts.setIgnoreSilentSwitch("ignore");
+      Tts.speak('Apes together, fly strong!');
+      // Tts.speak('14');
+      // Tts.speak('13');
+      // Tts.speak('12');
+      // Tts.speak('11');
+      // Tts.speak('10');
+      // Tts.speak('9');
+      // Tts.speak('8');
+      // Tts.speak('7');
+      // Tts.speak('6');
+      Tts.speak('5');
+      Tts.speak('4');
+      Tts.speak('3 5');
+      Tts.speak('3');
+      // Tts.speak('2 5');
+      // Tts.speak('2');
+      // Tts.speak('1 5');
+      // Tts.speak('1');
+      // Tts.speak('800');
+      // Tts.speak('600');
+      // Tts.speak('400');
+      // Tts.speak('200');
+      // Tts.speak('100');
+    }, (err) => {
+      if (err.code === 'no_engine') {
+        Tts.requestInstallEngine();
+      }
+    });
+
     return () => {
       subBarometer.unsubscribe();
       subMagnetometer.unsubscribe();
+      Tts.removeAllListeners('tts-start');
+      Tts.removeAllListeners('tts-progress');
+      Tts.removeAllListeners('tts-finish');
+      Tts.removeAllListeners('tts-cancel');
     };
   }, []);
 

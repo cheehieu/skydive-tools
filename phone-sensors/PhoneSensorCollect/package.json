@@ -27,7 +27,8 @@
     "@react-native-community/geolocation": "^3.0.6",
     "react": "18.2.0",
     "react-native": "0.71.10",
-    "react-native-sensors": "^7.3.6"
+    "react-native-sensors": "^7.3.6",
+    "react-native-tts": "^4.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
