@@ -42,6 +42,8 @@ import {
 import { barometer, magnetometer, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import Geolocation from '@react-native-community/geolocation';
 import Tts from 'react-native-tts';
+import axios from 'axios';
+import { API_KEY_OPEN_WEATHER_MAP } from './keys';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -115,6 +117,19 @@ function App(): JSX.Element {
     }, error => {console.log(error)}, { enableHighAccuracy: true });
   };
 
+  // Gets the current sea level pressure at the user's location
+  const fetchSeaLevelPressure = async (lat: number, long: number) => {
+    console.log('fetching sea level pressure...');
+    try {
+      // const response = await axios.get(`https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${long}&appid=${API_KEY_OPEN_WEATHER_MAP}`);
+      const response = await axios.get(`http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${long}&appid=${API_KEY_OPEN_WEATHER_MAP}`);
+      console.log(response.data);
+      setPressureSeaLevel(response.data.main.sea_level ?? response.data.main.pressure);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     // setUpdateIntervalForType(SensorTypes.barometer, 100);
     setUpdateIntervalForType(SensorTypes.magnetometer, 1000); // Update every 1000ms
@@ -126,7 +141,7 @@ function App(): JSX.Element {
     //   setMagneto({ x, y, z });
     //   setTimestamp(timestamp);
     // });
-    // getCurrentPosition();
+    getCurrentPosition();
 
     Tts.addEventListener('tts-start', (event) => console.log("--- start", event));
     Tts.addEventListener('tts-progress', (event) => console.log("--- progress", event));
@@ -199,7 +214,7 @@ function App(): JSX.Element {
               </Pressable>
 
               <Pressable style={styles.button} onPress={() => {
-                  console.log('Fetch P_0 based on location');
+                  fetchSeaLevelPressure(location.lat, location.long);
                 }}>
                 <Text style={styles.buttonText}>Use Location</Text>
               </Pressable>
@@ -214,13 +229,13 @@ function App(): JSX.Element {
                 <Pressable style={styles.button} onPress={() => {
                   console.log('START logging');
                 }}>
-                  <Text style={styles.buttonText}>Start Log</Text>
+                  <Text style={styles.buttonText}>START Log</Text>
                 </Pressable>
 
                 <Pressable style={[styles.button, {backgroundColor: 'red'}]} onPress={() => {
                   console.log('STOP logging');
                 }}>
-                  <Text style={styles.buttonText}>Stop Log</Text>
+                  <Text style={styles.buttonText}>STOP Log</Text>
                 </Pressable>
               </View>
             </View>
