@@ -20,7 +20,9 @@
 // TODO: allow user to use local audio files for utterances
 // TODO: allow user to adjust volume for spoken audio (react-native-volume-manager), or mute entirely
 // TODO: use API to determine elevation (offset from sea level) at current location (https://developers.google.com/maps/documentation/elevation/overview)
-
+// TODO: instead of saving sensor data to file system, use a database solution (Realm, SQLite, WatermelonDB, etc.)
+// TODO: save data in format that can be easily imported into Excel, or data visualization tool
+// TODO: compete with FlySight (https://www.flysight.ca/), VOG altimeter (https://vog.ee/)
 // Measuring precise altitude using only phone sensors can be challenging due to various limitations and factors that can affect accuracy. Environmental factors, weather changes, and sensor limitations can still impact accuracy. Keep in mind that precise altitude estimation using phone sensors alone may not achieve the same level of accuracy as specialized altimeters or surveying instruments.
 
 import React, {useEffect, useState} from 'react';
@@ -43,7 +45,7 @@ import {
 } from 'react-native/Libraries/NewAppScreen';
 
 import { barometer, magnetometer, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
-import { Subscription, throttleTime } from 'rxjs';
+import { Subscription, sampleTime, throttleTime } from 'rxjs';
 import Geolocation from '@react-native-community/geolocation';
 import Tts from 'react-native-tts';
 import axios from 'axios';
@@ -94,33 +96,15 @@ function pressureToAltitude(pressure: number, seaLevelPressure: number = 1013.25
 }
 
 // Function to write data to file
-// async function writeToFile(data, filename: string = 'sensor_data.txt') {
-//   // const path = `${RNFS.DocumentDirectoryPath}/${filename}`;
-//   const path = RNFS.DocumentDirectoryPath + `/${filename}`;
-//   console.log(`Writing data to file: ${path}`);
-  
-//   try {
-//     const updatedData = JSON.stringify(data);
-//     await RNFS.writeFile('data.json', updatedData, 'utf8');
-//     console.log('Data appended and saved successfully!');
-//   } catch (err) {
-//     // Handle file write error
-//     console.error('Error writing data to file:', err);
-
-//     // Handle file read error or create the file if it doesn't exist
-//     if (err.code === 'ENOENT') {
-//       console.log('File does not exist. Creating a new file.');
-//       try {
-//         await RNFS.writeFile(filePath, '[]', 'utf8');
-//         console.log('File created successfully.');
-//       } catch (err) {
-//         console.error('Error creating the file:', err);
-//       }
-//     } else {
-//       console.error('Error reading data from file:', err);
-//     }
-//   }
-// }
+const makeFile = async (filePath, content) => {
+  try {
+    //create a file at filePath. Write the content data to it
+    await RNFS.writeFile(filePath, JSON.stringify(content), "utf8");
+    console.log("written to file:", filePath);
+  } catch (error) { //if the function throws an error, log it out.
+    console.log(error);
+  }
+};
 
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -140,6 +124,12 @@ function App(): JSX.Element {
 
   const pressureData = [];
   const [pressureDataString, setPressureDataString] = useState('');
+
+  const getFileContent = async (path) => {
+    console.log('reading file...', path);
+    const reader = await RNFS.readDir(path);
+    setPressureDataString(reader);
+  };
 
   const getCurrentPosition = () => {
     Geolocation.getCurrentPosition(info => {
@@ -173,7 +163,7 @@ function App(): JSX.Element {
   // throttleTime, sampleTime, auditTime, debounceTime
   const subscribeBarometer = () => {
     if (!barometerSubscription) {
-      const subscription = barometer.pipe(throttleTime(50)).subscribe(({ pressure }) => {
+      const subscription = barometer.pipe(sampleTime(250)).subscribe(({ pressure }) => {
         setPressure(pressure);
         const timestamp = Date.now();
         const altitude = pressureToAltitude(pressure, pressureOffset !== 0 ? pressureOffset : pressureSeaLevel, true);
@@ -288,7 +278,8 @@ function App(): JSX.Element {
               <View style={[styles.button, {backgroundColor: 'lightgreen'}]}>
                 <Pressable style={styles.button} onPress={() => {
                   console.log('START logging');
-                  // writeToFile(pressureData);
+                  // writeToFile(pressureDataString);
+                  makeFile(RNFS.DocumentDirectoryPath + '/pressureData.json', pressureDataString);
                 }}>
                   <Text style={styles.buttonText}>START Log</Text>
                 </Pressable>
@@ -323,6 +314,12 @@ function App(): JSX.Element {
                 setPressureDataString('');
               }}>
                 <Text style={styles.buttonText}>Clear Data</Text>
+              </Pressable>
+              <Pressable style={styles.button} onPress={() => {
+                console.log('Read Data');
+                getFileContent(RNFS.DocumentDirectoryPath + '/pressureData.json');
+              }}>
+                <Text style={styles.buttonText}>Read Data</Text>
               </Pressable>
               <Text>Data collected: {pressureData.length}</Text>
               <Text selectable={true}>{pressureDataString}</Text>
