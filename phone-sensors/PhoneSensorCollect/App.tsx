@@ -5,11 +5,13 @@
  * @format
  */
 
-// TODO: apply smoothing filter to barometer data stream
-// TODO: add GPS location lat/long (altitude)
-// TODO: use GPS locaiton to determine barometric pressure at location on the ground (https://www.weather.gov/documentation/services-web-api)
 // TODO: allow user to calibrate ground altitude/pressure
 // TODO: apply Kalman filtering to combine and refind data from multiple sources
+// TODO: apply smoothing filter to barometer data stream
+// TODO: allow user to set barometer listening frequency, print timestamped data to screen and export to file
+
+// TODO: add GPS location lat/long (altitude)
+// TODO: use GPS locaiton to determine barometric pressure at location on the ground (https://www.weather.gov/documentation/services-web-api)
 // TODO: watch GPS location and point back to DZ pin
 // TODO: allow user to adjust voice, language, pitch, speed, etc.
 // TODO: adjust speed based on descent rate (faster if utterance won't finish before next altitude checkpoint)
@@ -17,6 +19,7 @@
 // TODO: set phrases for audible alerts (seatbelts, 10K, full altitude, etc.) during ascent
 // TODO: allow user to use local audio files for utterances
 // TODO: allow user to adjust volume for spoken audio (react-native-volume-manager), or mute entirely
+// TODO: use API to determine elevation (offset from sea level) at current location (https://developers.google.com/maps/documentation/elevation/overview)
 
 // Measuring precise altitude using only phone sensors can be challenging due to various limitations and factors that can affect accuracy. Environmental factors, weather changes, and sensor limitations can still impact accuracy. Keep in mind that precise altitude estimation using phone sensors alone may not achieve the same level of accuracy as specialized altimeters or surveying instruments.
 
@@ -40,9 +43,11 @@ import {
 } from 'react-native/Libraries/NewAppScreen';
 
 import { barometer, magnetometer, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
+import { Subscription, throttleTime } from 'rxjs';
 import Geolocation from '@react-native-community/geolocation';
 import Tts from 'react-native-tts';
 import axios from 'axios';
+import RNFS, { write } from 'react-native-fs';
 import { API_KEY_OPEN_WEATHER_MAP } from './keys';
 
 type SectionProps = PropsWithChildren<{
@@ -88,6 +93,35 @@ function pressureToAltitude(pressure: number, seaLevelPressure: number = 1013.25
   return altitude;
 }
 
+// Function to write data to file
+// async function writeToFile(data, filename: string = 'sensor_data.txt') {
+//   // const path = `${RNFS.DocumentDirectoryPath}/${filename}`;
+//   const path = RNFS.DocumentDirectoryPath + `/${filename}`;
+//   console.log(`Writing data to file: ${path}`);
+  
+//   try {
+//     const updatedData = JSON.stringify(data);
+//     await RNFS.writeFile('data.json', updatedData, 'utf8');
+//     console.log('Data appended and saved successfully!');
+//   } catch (err) {
+//     // Handle file write error
+//     console.error('Error writing data to file:', err);
+
+//     // Handle file read error or create the file if it doesn't exist
+//     if (err.code === 'ENOENT') {
+//       console.log('File does not exist. Creating a new file.');
+//       try {
+//         await RNFS.writeFile(filePath, '[]', 'utf8');
+//         console.log('File created successfully.');
+//       } catch (err) {
+//         console.error('Error creating the file:', err);
+//       }
+//     } else {
+//       console.error('Error reading data from file:', err);
+//     }
+//   }
+// }
+
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
@@ -97,10 +131,15 @@ function App(): JSX.Element {
 
   const [timestamp, setTimestamp] = useState(0);
   // const [magneto, setMagneto] = useState({ x: 0, y: 0, z: 0 });
-  const [pressure, setPressure] = useState(0);
+  const [pressure, setPressure] = useState(-1);
+  const [pressureOffset, setPressureOffset] = useState(0);
   const [pressureSeaLevel, setPressureSeaLevel] = useState(STD_SEA_LEVEL_PRESSURE);
   const [pressureInput, onChangePressureInput] = useState('');
+  const [barometerSubscription, setBarometerSubscription] = useState<Subscription | null>(null);
   const [location, setLocation] = useState({ lat: 0, long: 0, acc: 0, head: 0, speed: 0, alt: 0, vacc: 0 });
+
+  const pressureData = [];
+  const [pressureDataString, setPressureDataString] = useState('');
 
   const getCurrentPosition = () => {
     Geolocation.getCurrentPosition(info => {
@@ -130,13 +169,38 @@ function App(): JSX.Element {
     }
   };
 
+  // Function to subscribe to barometer
+  // throttleTime, sampleTime, auditTime, debounceTime
+  const subscribeBarometer = () => {
+    if (!barometerSubscription) {
+      const subscription = barometer.pipe(throttleTime(50)).subscribe(({ pressure }) => {
+        setPressure(pressure);
+        const timestamp = Date.now();
+        const altitude = pressureToAltitude(pressure, pressureOffset !== 0 ? pressureOffset : pressureSeaLevel, true);
+        pressureData.push({ timestamp, pressure, altitude });
+        setPressureDataString(JSON.stringify(pressureData, null, 2));
+        // console.log(`TS: ${timestamp}, P: ${pressure}, A: ${altitude.toFixed(2)}`);
+      });
+      setBarometerSubscription(subscription);
+    }
+  };
+
+  // Function to unsubscribe from barometer
+  const unsubscribeBarometer = () => {
+    if (barometerSubscription) {
+      barometerSubscription.unsubscribe();
+      setBarometerSubscription(null);
+      setPressure(-1);
+    }
+  };
+
   useEffect(() => {
     // setUpdateIntervalForType(SensorTypes.barometer, 100);
     setUpdateIntervalForType(SensorTypes.magnetometer, 1000); // Update every 1000ms
 
-    const subBarometer = barometer.subscribe(({ pressure }) =>
-      setPressure(pressure)
-    );
+    // const subBarometer = barometer.subscribe(({ pressure }) =>
+    //   setPressure(pressure)
+    // );
     // const subMagnetometer = magnetometer.subscribe(({ x, y, z, timestamp }) => {
     //   setMagneto({ x, y, z });
     //   setTimestamp(timestamp);
@@ -150,7 +214,7 @@ function App(): JSX.Element {
 
     Tts.getInitStatus().then(() => {
       Tts.setDucking(true);
-      Tts.voices().then(voices => console.log('Voices:', voices));
+      Tts.voices().then(voices => console.log('Voices:', JSON.stringify(voices, null, 2)));
       // Tts.setDefaultLanguage('en-IE');
       // Tts.setDefaultVoice('com.apple.ttsbundle.siri_male_en-GB_compact');
       // Tts.setDefaultRate(0.5);
@@ -164,7 +228,7 @@ function App(): JSX.Element {
     });
 
     return () => {
-      subBarometer.unsubscribe();
+      // subBarometer.unsubscribe();
       // subMagnetometer.unsubscribe();
       Tts.removeAllListeners('tts-start');
       Tts.removeAllListeners('tts-progress');
@@ -189,26 +253,21 @@ function App(): JSX.Element {
           {/* <Section title="Time:">
             <Text>{new Date(timestamp).toLocaleTimeString()}</Text>
           </Section> */}
-          <Section title="Barometer:">
-            <View>
-              <Text>Pressure (mb): {pressure}</Text>
-              <Text>Altitude (ft): {pressureToAltitude(pressure, pressureSeaLevel)}</Text>
-              <Text>Altitude (m): {pressureToAltitude(pressure, pressureSeaLevel, true)}</Text>
-            </View>
-          </Section>
+          
           <Section title="Calibration:">
             <View>
-              <Text>SeaLevelPressure (mb): {pressureSeaLevel}</Text>
+              <Text>SeaLevelPressure (mb): {pressureOffset !== 0 ? pressureOffset : pressureSeaLevel}</Text>
               <TextInput
                 style={styles.textInput}
                 onChangeText={onChangePressureInput}
                 onSubmitEditing={() => setPressureSeaLevel(parseInt(pressureInput))}
                 value={pressureInput}
-                placeholder={pressureSeaLevel.toString()}
+                placeholder={pressureOffset !== 0 ? pressureOffset.toString() : pressureSeaLevel.toString()}
                 keyboardType="numeric"
               />
               <Pressable style={styles.button} onPress={() => {
                 console.log('Calibrate');
+                setPressureOffset(pressure);
               }}>
                 <Text style={styles.buttonText}>Calibrate</Text>
               </Pressable>
@@ -221,6 +280,7 @@ function App(): JSX.Element {
 
               <Pressable style={styles.button} onPress={() => {
                   setPressureSeaLevel(STD_SEA_LEVEL_PRESSURE);
+                  setPressureOffset(0);
                   onChangePressureInput('');
                 }}>
                 <Text style={styles.buttonText}>Reset</Text>
@@ -228,6 +288,7 @@ function App(): JSX.Element {
               <View style={[styles.button, {backgroundColor: 'lightgreen'}]}>
                 <Pressable style={styles.button} onPress={() => {
                   console.log('START logging');
+                  // writeToFile(pressureData);
                 }}>
                   <Text style={styles.buttonText}>START Log</Text>
                 </Pressable>
@@ -238,6 +299,33 @@ function App(): JSX.Element {
                   <Text style={styles.buttonText}>STOP Log</Text>
                 </Pressable>
               </View>
+            </View>
+          </Section>
+
+          <Section title="Barometer:">
+            <View>
+              <Text>Pressure (mb): {pressure}</Text>
+              <Text>Altitude (ft): {pressureToAltitude(pressure, pressureOffset !== 0 ? pressureOffset : pressureSeaLevel)}</Text>
+              <Text>Altitude (m): {pressureToAltitude(pressure, pressureOffset !== 0 ? pressureOffset : pressureSeaLevel, true)}</Text>
+              <Pressable style={styles.button} disabled={barometerSubscription !== null} onPress={() => {
+                subscribeBarometer();
+              }}>
+                <Text style={styles.buttonText}>Start</Text>
+              </Pressable>
+              <Pressable style={styles.button} disabled={barometerSubscription === null} onPress={() => {
+                unsubscribeBarometer();
+              }}>
+                <Text style={styles.buttonText}>Stop</Text>
+              </Pressable>
+              <Pressable style={styles.button} onPress={() => {
+                console.log('Clear Data');
+                pressureData.splice(0, pressureData.length);
+                setPressureDataString('');
+              }}>
+                <Text style={styles.buttonText}>Clear Data</Text>
+              </Pressable>
+              <Text>Data collected: {pressureData.length}</Text>
+              <Text selectable={true}>{pressureDataString}</Text>
             </View>
           </Section>
           {/* <Section title="Magnetometer:">
